@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DSE – Digital Signage Image Arranger</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <h1>DSE <span>Digital Signage Image Arranger</span></h1>
+  <div class="topbar-actions">
+    <button id="btnExportPng" class="primary" disabled>Download PNG</button>
+    <button id="btnExportJpg" disabled>Download JPEG</button>
+  </div>
+</header>
+
+<main class="app">
+  <aside class="panel">
+    <section>
+      <h2>1. Images</h2>
+      <div id="dropzone" class="dropzone">
+        <input type="file" id="fileInput" accept="image/*" multiple hidden>
+        <p><strong>Drop images here</strong> or <button type="button" id="btnBrowse" class="link">browse</button></p>
+        <p class="hint">Add 2, 3, 4 or more images. Drag thumbnails to reorder.</p>
+      </div>
+      <ul id="imageList" class="image-list"></ul>
+      <div class="row">
+        <button id="btnShuffle" type="button">Shuffle</button>
+        <button id="btnClear" type="button">Clear all</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>2. Canvas size</h2>
+      <label>Preset
+        <select id="sizePreset">
+          <option value="1080x1920" selected>Portrait 1080 × 1920 (digital sign)</option>
+          <option value="1920x1080">Landscape 1920 × 1080</option>
+          <option value="2160x3840">Portrait 4K 2160 × 3840</option>
+          <option value="3840x2160">Landscape 4K 3840 × 2160</option>
+          <option value="1080x1080">Square 1080 × 1080</option>
+          <option value="custom">Custom…</option>
+        </select>
+      </label>
+      <div class="row">
+        <label>Width <input type="number" id="canvasW" value="1080" min="16" max="8192"></label>
+        <label>Height <input type="number" id="canvasH" value="1920" min="16" max="8192"></label>
+      </div>
+    </section>
+
+    <section>
+      <h2>3. Layout pattern</h2>
+      <div id="patternGrid" class="pattern-grid"></div>
+      <label id="heroRatioRow">Hero size <span id="heroRatioVal">60%</span>
+        <input type="range" id="heroRatio" min="30" max="85" value="60">
+      </label>
+      <label class="check"><input type="checkbox" id="chkFlip"> Mirror layout</label>
+    </section>
+
+    <section>
+      <h2>4. Style</h2>
+      <label>Gap <span id="gapVal">12 px</span>
+        <input type="range" id="gap" min="0" max="120" value="12">
+      </label>
+      <label>Outer margin <span id="marginVal">0 px</span>
+        <input type="range" id="margin" min="0" max="200" value="0">
+      </label>
+      <label>Corner radius <span id="radiusVal">0 px</span>
+        <input type="range" id="radius" min="0" max="120" value="0">
+      </label>
+      <label>Image fit
+        <select id="fitMode">
+          <option value="cover" selected>Cover (fill cell, crop)</option>
+          <option value="contain">Contain (fit inside cell)</option>
+        </select>
+      </label>
+      <label>Background <input type="color" id="bgColor" value="#000000"></label>
+    </section>
+  </aside>
+
+  <section class="stage">
+    <div class="stage-inner">
+      <canvas id="canvas" width="1080" height="1920"></canvas>
+      <p id="emptyMsg" class="empty">Add images to start</p>
+    </div>
+    <p class="stage-info" id="stageInfo"></p>
+  </section>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
