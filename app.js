@@ -219,7 +219,7 @@
       d.addEventListener('click', () => { state.pattern = p.id; renderPatterns(); draw(); });
       els.patterns.appendChild(d);
     });
-    els.heroRow.style.display = PATTERN_BY_ID[state.pattern].hero ? '' : 'none';
+    if (state.tab !== 'batch') els.heroRow.style.display = PATTERN_BY_ID[state.pattern].hero ? '' : 'none';
   }
 
   // ---------- Drawing ----------
@@ -237,13 +237,13 @@
     c.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
   }
 
-  function render(c, W, H) {
+  function render(c, W, H, images = state.images, patternId = state.pattern) {
     c.fillStyle = state.bg; c.fillRect(0, 0, W, H);
-    const n = state.images.length;
+    const n = images.length;
     if (!n) return;
     const m = state.margin, g = state.gap;
     const innerW = W - 2 * m, innerH = H - 2 * m;
-    const rects = computeRects(state.pattern, n, W / H, state.hero, state.flip);
+    const rects = computeRects(patternId, n, W / H, state.hero, state.flip);
     rects.forEach((r, i) => {
       // gap handling: each cell shrinks by half the gap on internal edges only
       const x0 = m + r.x * innerW, y0 = m + r.y * innerH, x1 = x0 + r.w * innerW, y1 = y0 + r.h * innerH;
@@ -255,7 +255,7 @@
       c.save();
       roundRectPath(c, L, T, w, h, state.radius);
       c.clip();
-      drawImageFit(c, state.images[i].img, L, T, w, h, state.fit);
+      drawImageFit(c, images[i].img, L, T, w, h, state.fit);
       c.restore();
     });
   }
@@ -266,6 +266,7 @@
     raf = requestAnimationFrame(() => {
       raf = null;
       if (canvas.width !== state.W || canvas.height !== state.H) { canvas.width = state.W; canvas.height = state.H; }
+      if (state.tab === 'batch') { drawBatchPreview(); return; }
       render(ctx, state.W, state.H);
       const has = state.images.length > 0;
       els.empty.style.display = has ? 'none' : '';
@@ -289,13 +290,193 @@
     }, type, 0.92);
   }
 
+
+  // ---------- Batch processing ----------
+  const batch = { files: [], per: 2, pattern: 'grid', remainder: 'include', prefix: 'IMG_', start: 1, digits: 3,
+    format: 'image/png', groupIdx: 0, previewImgs: null, previewKey: '', running: false };
+  state.tab = 'single';
+  const bels = {
+    folder: $('batchFolderInput'), files: $('batchFilesInput'), btnFolder: $('btnBatchFolder'), btnFiles: $('btnBatchFiles'),
+    drop: $('batchDrop'), count: $('batchCount'), per: $('batchPer'), pattern: $('batchPattern'), remainder: $('batchRemainder'),
+    prefix: $('batchPrefix'), start: $('batchStart'), digits: $('batchDigits'), format: $('batchFormat'), example: $('batchExample'),
+    prev: $('btnBatchPrev'), next: $('btnBatchNext'), pos: $('batchPos'), zip: $('btnBatchZip'), dir: $('btnBatchDir'),
+    progress: $('batchProgress'), status: $('batchStatus'),
+  };
+
+  const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+  function setBatchFiles(list) {
+    batch.files = Array.from(list).filter(f => f.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp|avif)$/i.test(f.name))
+      .sort((x, y) => collator.compare(x.webkitRelativePath || x.name, y.webkitRelativePath || y.name));
+    batch.groupIdx = 0; batch.previewKey = '';
+    updateBatchUi(); draw();
+  }
+
+  function batchGroups() {
+    const g = [];
+    for (let i = 0; i < batch.files.length; i += batch.per) g.push(batch.files.slice(i, i + batch.per));
+    if (batch.remainder === 'skip' && g.length && g[g.length - 1].length < batch.per) g.pop();
+    return g;
+  }
+  const ext = () => batch.format === 'image/jpeg' ? 'jpg' : 'png';
+  const outName = i => `${batch.prefix}${String(batch.start + i).padStart(batch.digits, '0')}.${ext()}`;
+
+  function renderBatchPatterns() {
+    const cur = bels.pattern.value || batch.pattern;
+    bels.pattern.innerHTML = '';
+    PATTERNS.filter(p => batch.per >= p.min).forEach(p => {
+      const o = document.createElement('option'); o.value = p.id; o.textContent = p.name; bels.pattern.appendChild(o);
+    });
+    bels.pattern.value = [...bels.pattern.options].some(o => o.value === cur) ? cur : 'grid';
+    batch.pattern = bels.pattern.value;
+    els.heroRow.style.display = PATTERN_BY_ID[state.tab === 'batch' ? batch.pattern : state.pattern].hero ? '' : 'none';
+  }
+
+  function updateBatchUi() {
+    const groups = batchGroups();
+    bels.count.textContent = batch.files.length ? `${batch.files.length}枚の画像 → ${groups.length}枚の出力` : '画像が選択されていません';
+    bels.example.textContent = outName(0) + (groups.length > 1 ? ` … ${outName(groups.length - 1)}` : '');
+    bels.pos.textContent = groups.length ? `${batch.groupIdx + 1} / ${groups.length}` : '— / —';
+    bels.zip.disabled = !groups.length || batch.running;
+    bels.dir.disabled = !groups.length || batch.running || !window.showDirectoryPicker;
+    bels.prev.disabled = bels.next.disabled = groups.length < 2 || batch.running;
+  }
+
+  function loadFile(f) {
+    return new Promise((res, rej) => {
+      const url = URL.createObjectURL(f); const img = new Image();
+      img.onload = () => res({ img, url, name: f.name });
+      img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('読み込み失敗: ' + f.name)); };
+      img.src = url;
+    });
+  }
+  const freeImgs = imgs => imgs.forEach(i => URL.revokeObjectURL(i.url));
+
+  async function drawBatchPreview() {
+    const groups = batchGroups();
+    const has = groups.length > 0;
+    els.empty.style.display = has ? 'none' : '';
+    els.png.disabled = els.jpg.disabled = true;
+    if (!has) { ctx.fillStyle = state.bg; ctx.fillRect(0, 0, state.W, state.H); els.info.textContent = ''; return; }
+    batch.groupIdx = Math.min(batch.groupIdx, groups.length - 1);
+    const g = groups[batch.groupIdx];
+    const key = batch.groupIdx + ':' + g.map(f => f.name + f.size).join('|');
+    if (batch.previewKey !== key) {
+      if (batch.previewImgs) freeImgs(batch.previewImgs);
+      batch.previewKey = key;
+      try { batch.previewImgs = await Promise.all(g.map(loadFile)); } catch (e) { bels.status.textContent = e.message; return; }
+      if (batch.previewKey !== key) return; // superseded
+    }
+    render(ctx, state.W, state.H, batch.previewImgs, batch.pattern);
+    els.info.textContent = `${outName(batch.groupIdx)} · ${g.map(f => f.name).join(' + ')}`;
+    updateBatchUi();
+  }
+
+  function canvasBlob(c, type) { return new Promise(res => c.toBlob(res, type, 0.92)); }
+
+  async function runBatch(sink) {
+    const groups = batchGroups();
+    if (!groups.length || batch.running) return;
+    batch.running = true; updateBatchUi();
+    bels.progress.hidden = false; bels.progress.value = 0; bels.progress.max = groups.length;
+    const off = document.createElement('canvas'); off.width = state.W; off.height = state.H;
+    const octx = off.getContext('2d');
+    let done = 0, failed = 0;
+    try {
+      for (let i = 0; i < groups.length; i++) {
+        let imgs = null;
+        try {
+          imgs = await Promise.all(groups[i].map(loadFile));
+          render(octx, state.W, state.H, imgs, batch.pattern);
+          await sink(outName(i), await canvasBlob(off, batch.format));
+          done++;
+        } catch (e) { failed++; console.error(e); }
+        finally { if (imgs) freeImgs(imgs); }
+        bels.progress.value = i + 1;
+        bels.status.textContent = `処理中… ${i + 1} / ${groups.length}`;
+      }
+    } finally {
+      batch.running = false; updateBatchUi();
+    }
+    return { done, failed };
+  }
+
+  function downloadBlob(blob, name) {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }
+
+  async function batchToZip() {
+    if (!window.JSZip) { bels.status.textContent = 'ZIPライブラリを読み込めませんでした（オフライン？）。個別にダウンロードします。';
+      const r = await runBatch(async (name, blob) => { downloadBlob(blob, name); await new Promise(res => setTimeout(res, 300)); });
+      if (r) bels.status.textContent = `完了: ${r.done}枚を書き出しました${r.failed ? `（失敗 ${r.failed}）` : ''}`; return; }
+    const zip = new JSZip();
+    bels.status.textContent = '処理中…';
+    const r = await runBatch(async (name, blob) => zip.file(name, blob));
+    if (!r) return;
+    bels.status.textContent = 'ZIPを作成中…';
+    const blob = await zip.generateAsync({ type: 'blob' }, m => { bels.progress.value = bels.progress.max * m.percent / 100; });
+    downloadBlob(blob, `${batch.prefix.replace(/[_\-\s]+$/, '') || 'dse'}_${state.W}x${state.H}.zip`);
+    bels.status.textContent = `完了: ${r.done}枚を書き出しました${r.failed ? `（失敗 ${r.failed}）` : ''}`;
+  }
+
+  async function batchToDirectory() {
+    let dir;
+    try { dir = await window.showDirectoryPicker({ mode: 'readwrite' }); } catch { return; }
+    bels.status.textContent = '処理中…';
+    const r = await runBatch(async (name, blob) => {
+      const fh = await dir.getFileHandle(name, { create: true });
+      const w = await fh.createWritable(); await w.write(blob); await w.close();
+    });
+    if (r) bels.status.textContent = `完了: ${r.done}枚をフォルダに保存しました${r.failed ? `（失敗 ${r.failed}）` : ''}`;
+  }
+
+  // batch events
+  bels.btnFolder.addEventListener('click', () => bels.folder.click());
+  bels.btnFiles.addEventListener('click', () => bels.files.click());
+  bels.folder.addEventListener('change', () => { setBatchFiles(bels.folder.files); bels.folder.value = ''; });
+  bels.files.addEventListener('change', () => { setBatchFiles(bels.files.files); bels.files.value = ''; });
+  bels.per.addEventListener('change', () => { batch.per = +bels.per.value; batch.groupIdx = 0; batch.previewKey = ''; renderBatchPatterns(); updateBatchUi(); draw(); });
+  bels.pattern.addEventListener('change', () => { batch.pattern = bels.pattern.value; renderBatchPatterns(); draw(); });
+  bels.remainder.addEventListener('change', () => { batch.remainder = bels.remainder.value; batch.groupIdx = 0; batch.previewKey = ''; updateBatchUi(); draw(); });
+  bels.prefix.addEventListener('input', () => { batch.prefix = bels.prefix.value; updateBatchUi(); draw(); });
+  bels.start.addEventListener('input', () => { batch.start = Math.max(0, +bels.start.value || 0); updateBatchUi(); draw(); });
+  bels.digits.addEventListener('input', () => { batch.digits = Math.min(8, Math.max(1, +bels.digits.value || 1)); updateBatchUi(); draw(); });
+  bels.format.addEventListener('change', () => { batch.format = bels.format.value; updateBatchUi(); draw(); });
+  bels.prev.addEventListener('click', () => { batch.groupIdx = Math.max(0, batch.groupIdx - 1); updateBatchUi(); draw(); });
+  bels.next.addEventListener('click', () => { batch.groupIdx = Math.min(batchGroups().length - 1, batch.groupIdx + 1); updateBatchUi(); draw(); });
+  bels.zip.addEventListener('click', batchToZip);
+  bels.dir.addEventListener('click', batchToDirectory);
+
+  // tabs
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    state.tab = t.dataset.tab;
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === t));
+    document.querySelectorAll('.tab-page').forEach(p => p.hidden = p.id !== 'tab-' + state.tab);
+    renderBatchPatterns(); draw();
+  }));
+
   // ---------- Events ----------
   els.browse.addEventListener('click', e => { e.stopPropagation(); els.file.click(); });
   els.drop.addEventListener('click', () => els.file.click());
   els.file.addEventListener('change', () => { addFiles(els.file.files); els.file.value = ''; });
   ['dragenter', 'dragover'].forEach(ev => document.addEventListener(ev, e => { e.preventDefault(); els.drop.classList.add('over'); }));
   ['dragleave', 'drop'].forEach(ev => document.addEventListener(ev, e => { e.preventDefault(); els.drop.classList.remove('over'); }));
-  document.addEventListener('drop', e => { if (e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files); });
+  document.addEventListener('drop', async e => {
+    if (state.tab === 'batch') { setBatchFiles(await filesFromDrop(e.dataTransfer)); return; }
+    if (e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files);
+  });
+  async function filesFromDrop(dt) {
+    const items = Array.from(dt?.items || []).map(i => i.webkitGetAsEntry?.()).filter(Boolean);
+    if (!items.some(en => en.isDirectory)) return dt.files;
+    const out = [];
+    const walk = entry => new Promise(res => {
+      if (entry.isFile) entry.file(f => { out.push(f); res(); }, res);
+      else { const r = entry.createReader(); const readAll = () => r.readEntries(async ents => {
+        if (!ents.length) return res(); for (const en of ents) await walk(en); readAll(); }, res); readAll(); }
+    });
+    for (const en of items) await walk(en);
+    return out;
+  }
   document.addEventListener('paste', e => {
     const files = Array.from(e.clipboardData?.items || []).filter(i => i.kind === 'file').map(i => i.getAsFile());
     if (files.length) addFiles(files);
@@ -319,7 +500,7 @@
   });
   [els.w, els.h].forEach(el => el.addEventListener('input', () => { els.preset.value = 'custom'; applySize(); }));
 
-  els.hero.addEventListener('input', () => { state.hero = els.hero.value / 100; els.heroVal.textContent = els.hero.value + '%'; renderPatterns(); draw(); });
+  els.hero.addEventListener('input', () => { state.hero = els.hero.value / 100; els.heroVal.textContent = els.hero.value + '%'; renderPatterns(); renderBatchPatterns(); draw(); });
   els.flip.addEventListener('change', () => { state.flip = els.flip.checked; renderPatterns(); draw(); });
   const bindRange = (el, valEl, key) => el.addEventListener('input', () => { state[key] = +el.value; valEl.textContent = el.value + ' px'; draw(); });
   bindRange(els.gap, els.gapVal, 'gap'); bindRange(els.margin, els.marginVal, 'margin'); bindRange(els.radius, els.radiusVal, 'radius');
@@ -329,7 +510,7 @@
   els.jpg.addEventListener('click', () => exportAs('image/jpeg'));
 
   // expose for testing
-  window.DSE = { state, PATTERNS, computeRects, addFiles, draw, render };
+  window.DSE = { state, batch, PATTERNS, computeRects, addFiles, draw, render, setBatchFiles, batchGroups };
 
-  renderPatterns(); draw();
+  renderPatterns(); renderBatchPatterns(); updateBatchUi(); draw();
 })();

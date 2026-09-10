@@ -72,3 +72,10 @@ label.check input { width: auto; }
   .panel { border-right: none; border-bottom: 1px solid var(--border); max-height: 50vh; }
   .stage-inner, #canvas { max-height: 60vh; }
 }
+
+.tabs { display: flex; gap: 4px; margin-bottom: 4px; }
+.tab { flex: 1; background: none; border: none; border-bottom: 2px solid var(--border); border-radius: 0; color: var(--muted); padding: 8px; }
+.tab.active { color: var(--text); border-bottom-color: var(--accent); }
+input[type=text] { font: inherit; color: var(--text); background: #12141a; border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px; width: 100%; }
+.center { display: flex; align-items: center; justify-content: center; color: var(--muted); }
+progress { width: 100%; margin-top: 8px; accent-color: var(--accent); }

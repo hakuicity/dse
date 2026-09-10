@@ -17,6 +17,11 @@
 
 <main class="app">
   <aside class="panel">
+    <div class="tabs">
+      <button type="button" class="tab active" data-tab="single">単一レイアウト</button>
+      <button type="button" class="tab" data-tab="batch">一括処理</button>
+    </div>
+    <div id="tab-single" class="tab-page">
     <section>
       <h2>1. 画像</h2>
       <div id="dropzone" class="dropzone">
@@ -32,7 +37,78 @@
     </section>
 
     <section>
-      <h2>2. キャンバスサイズ</h2>
+      <h2>2. レイアウトパターン</h2>
+      <div id="patternGrid" class="pattern-grid"></div>
+      <label id="heroRatioRow">メイン画像の大きさ <span id="heroRatioVal">60%</span>
+        <input type="range" id="heroRatio" min="30" max="85" value="60">
+      </label>
+      <label class="check"><input type="checkbox" id="chkFlip"> 左右反転</label>
+    </section>
+
+    </div>
+
+    <div id="tab-batch" class="tab-page" hidden>
+    <section>
+      <h2>1. フォルダを選択</h2>
+      <div id="batchDrop" class="dropzone">
+        <input type="file" id="batchFolderInput" webkitdirectory directory multiple hidden>
+        <input type="file" id="batchFilesInput" accept="image/*" multiple hidden>
+        <p><button type="button" id="btnBatchFolder">フォルダを選択</button> <button type="button" id="btnBatchFiles">ファイルを選択</button></p>
+        <p class="hint">画像はファイル名順に並べ替えられ、指定枚数ずつまとめて1枚の画像に合成されます。</p>
+      </div>
+      <p id="batchCount" class="hint">画像が選択されていません</p>
+    </section>
+    <section>
+      <h2>2. 合成設定</h2>
+      <label>1枚あたりの画像数
+        <select id="batchPer">
+          <option value="1">1枚</option><option value="2" selected>2枚</option><option value="3">3枚</option>
+          <option value="4">4枚</option><option value="5">5枚</option><option value="6">6枚</option>
+          <option value="8">8枚</option><option value="9">9枚</option>
+        </select>
+      </label>
+      <label>レイアウトパターン <select id="batchPattern"></select></label>
+      <label>余った画像
+        <select id="batchRemainder">
+          <option value="include" selected>少ない枚数でも出力する</option>
+          <option value="skip">出力しない</option>
+        </select>
+      </label>
+      <p class="hint">キャンバスサイズ・スタイル（間隔・余白・角の丸み・背景色など）は下の設定が使われます。</p>
+    </section>
+    <section>
+      <h2>3. ファイル名と形式</h2>
+      <div class="row">
+        <label>接頭辞 <input type="text" id="batchPrefix" value="IMG_"></label>
+        <label>開始番号 <input type="number" id="batchStart" value="1" min="0"></label>
+        <label>桁数 <input type="number" id="batchDigits" value="3" min="1" max="8"></label>
+      </div>
+      <label>形式
+        <select id="batchFormat">
+          <option value="image/png" selected>PNG</option>
+          <option value="image/jpeg">JPEG</option>
+        </select>
+      </label>
+      <p class="hint">例: <span id="batchExample" style="float:none">IMG_001.png</span></p>
+    </section>
+    <section>
+      <h2>4. プレビューと書き出し</h2>
+      <div class="row">
+        <button type="button" id="btnBatchPrev">◀ 前</button>
+        <span id="batchPos" class="center">— / —</span>
+        <button type="button" id="btnBatchNext">次 ▶</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button type="button" id="btnBatchZip" class="primary" disabled>ZIPで一括ダウンロード</button>
+        <button type="button" id="btnBatchDir" disabled>フォルダに保存</button>
+      </div>
+      <progress id="batchProgress" value="0" max="1" hidden></progress>
+      <p id="batchStatus" class="hint"></p>
+    </section>
+    </div>
+
+    <section>
+      <h2>キャンバスサイズ</h2>
       <label>プリセット
         <select id="sizePreset">
           <option value="1080x1920" selected>縦型 1080 × 1920（デジタルサイネージ）</option>
@@ -50,16 +126,7 @@
     </section>
 
     <section>
-      <h2>3. レイアウトパターン</h2>
-      <div id="patternGrid" class="pattern-grid"></div>
-      <label id="heroRatioRow">メイン画像の大きさ <span id="heroRatioVal">60%</span>
-        <input type="range" id="heroRatio" min="30" max="85" value="60">
-      </label>
-      <label class="check"><input type="checkbox" id="chkFlip"> 左右反転</label>
-    </section>
-
-    <section>
-      <h2>4. スタイル</h2>
+      <h2>スタイル</h2>
       <label>画像の間隔 <span id="gapVal">12 px</span>
         <input type="range" id="gap" min="0" max="120" value="12">
       </label>
@@ -88,6 +155,7 @@
   </section>
 </main>
 
+<script src="vendor/jszip.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
