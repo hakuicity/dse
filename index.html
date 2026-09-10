@@ -1,88 +1,88 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DSE – Digital Signage Image Arranger</title>
+<title>DSE – デジタルサイネージ画像レイアウトツール</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="topbar">
-  <h1>DSE <span>Digital Signage Image Arranger</span></h1>
+  <h1>DSE <span>デジタルサイネージ画像レイアウトツール</span></h1>
   <div class="topbar-actions">
-    <button id="btnExportPng" class="primary" disabled>Download PNG</button>
-    <button id="btnExportJpg" disabled>Download JPEG</button>
+    <button id="btnExportPng" class="primary" disabled>PNGをダウンロード</button>
+    <button id="btnExportJpg" disabled>JPEGをダウンロード</button>
   </div>
 </header>
 
 <main class="app">
   <aside class="panel">
     <section>
-      <h2>1. Images</h2>
+      <h2>1. 画像</h2>
       <div id="dropzone" class="dropzone">
         <input type="file" id="fileInput" accept="image/*" multiple hidden>
-        <p><strong>Drop images here</strong> or <button type="button" id="btnBrowse" class="link">browse</button></p>
-        <p class="hint">Add 2, 3, 4 or more images. Drag thumbnails to reorder.</p>
+        <p><strong>ここに画像をドロップ</strong> または <button type="button" id="btnBrowse" class="link">ファイルを選択</button></p>
+        <p class="hint">2枚、3枚、4枚以上の画像を追加できます。サムネイルをドラッグして並べ替え。</p>
       </div>
       <ul id="imageList" class="image-list"></ul>
       <div class="row">
-        <button id="btnShuffle" type="button">Shuffle</button>
-        <button id="btnClear" type="button">Clear all</button>
+        <button id="btnShuffle" type="button">シャッフル</button>
+        <button id="btnClear" type="button">すべて削除</button>
       </div>
     </section>
 
     <section>
-      <h2>2. Canvas size</h2>
-      <label>Preset
+      <h2>2. キャンバスサイズ</h2>
+      <label>プリセット
         <select id="sizePreset">
-          <option value="1080x1920" selected>Portrait 1080 × 1920 (digital sign)</option>
-          <option value="1920x1080">Landscape 1920 × 1080</option>
-          <option value="2160x3840">Portrait 4K 2160 × 3840</option>
-          <option value="3840x2160">Landscape 4K 3840 × 2160</option>
-          <option value="1080x1080">Square 1080 × 1080</option>
-          <option value="custom">Custom…</option>
+          <option value="1080x1920" selected>縦型 1080 × 1920（デジタルサイネージ）</option>
+          <option value="1920x1080">横型 1920 × 1080</option>
+          <option value="2160x3840">縦型 4K 2160 × 3840</option>
+          <option value="3840x2160">横型 4K 3840 × 2160</option>
+          <option value="1080x1080">正方形 1080 × 1080</option>
+          <option value="custom">カスタム…</option>
         </select>
       </label>
       <div class="row">
-        <label>Width <input type="number" id="canvasW" value="1080" min="16" max="8192"></label>
-        <label>Height <input type="number" id="canvasH" value="1920" min="16" max="8192"></label>
+        <label>幅 <input type="number" id="canvasW" value="1080" min="16" max="8192"></label>
+        <label>高さ <input type="number" id="canvasH" value="1920" min="16" max="8192"></label>
       </div>
     </section>
 
     <section>
-      <h2>3. Layout pattern</h2>
+      <h2>3. レイアウトパターン</h2>
       <div id="patternGrid" class="pattern-grid"></div>
-      <label id="heroRatioRow">Hero size <span id="heroRatioVal">60%</span>
+      <label id="heroRatioRow">メイン画像の大きさ <span id="heroRatioVal">60%</span>
         <input type="range" id="heroRatio" min="30" max="85" value="60">
       </label>
-      <label class="check"><input type="checkbox" id="chkFlip"> Mirror layout</label>
+      <label class="check"><input type="checkbox" id="chkFlip"> 左右反転</label>
     </section>
 
     <section>
-      <h2>4. Style</h2>
-      <label>Gap <span id="gapVal">12 px</span>
+      <h2>4. スタイル</h2>
+      <label>画像の間隔 <span id="gapVal">12 px</span>
         <input type="range" id="gap" min="0" max="120" value="12">
       </label>
-      <label>Outer margin <span id="marginVal">0 px</span>
+      <label>外側の余白 <span id="marginVal">0 px</span>
         <input type="range" id="margin" min="0" max="200" value="0">
       </label>
-      <label>Corner radius <span id="radiusVal">0 px</span>
+      <label>角の丸み <span id="radiusVal">0 px</span>
         <input type="range" id="radius" min="0" max="120" value="0">
       </label>
-      <label>Image fit
+      <label>画像の収め方
         <select id="fitMode">
-          <option value="cover" selected>Cover (fill cell, crop)</option>
-          <option value="contain">Contain (fit inside cell)</option>
+          <option value="cover" selected>カバー（枠いっぱいに表示・切り抜き）</option>
+          <option value="contain">コンテイン（枠内に全体を収める）</option>
         </select>
       </label>
-      <label>Background <input type="color" id="bgColor" value="#000000"></label>
+      <label>背景色 <input type="color" id="bgColor" value="#000000"></label>
     </section>
   </aside>
 
   <section class="stage">
     <div class="stage-inner">
       <canvas id="canvas" width="1080" height="1920"></canvas>
-      <p id="emptyMsg" class="empty">Add images to start</p>
+      <p id="emptyMsg" class="empty">画像を追加してください</p>
     </div>
     <p class="stage-info" id="stageInfo"></p>
   </section>

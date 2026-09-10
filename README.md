@@ -1,21 +1,20 @@
-# DSE – Digital Signage Image Arranger
+# DSE – デジタルサイネージ画像レイアウトツール
 
-A browser-only tool that arranges 2, 3, 4 or more images into layout patterns
-that exactly fill a target canvas — by default a portrait 1080 × 1920 digital sign.
-Everything runs client-side; no images are uploaded anywhere.
+2枚、3枚、4枚以上の画像をさまざまなパターンで配置し、指定サイズ（デフォルトは縦型 1080 × 1920 のデジタルサイネージ）にぴったり収めるブラウザ用ツールです。
+すべてブラウザ内で処理され、画像はどこにもアップロードされません。
 
-**Live:** enable GitHub Pages for this repo (Settings → Pages → Deploy from branch → `main`, root)
-and open `https://<user>.github.io/dse/`.
+**公開方法:** リポジトリの Settings → Pages → Deploy from branch → `main`（root）を選択すると、
+`https://<ユーザー名>.github.io/dse/` で利用できます。
 
-## Features
+## 機能
 
-- Drag & drop, paste, or browse to add any number of images; drag thumbnails (or click two) to reorder.
-- Canvas presets: 1080×1920 portrait, 1920×1080, 4K variants, square, or any custom size.
-- 17 layout patterns with live thumbnails: auto grid, 2/3 columns, stack, side-by-side,
-  hero top/bottom/left/right, hero + grid, mosaic A/B, brick, masonry, L-shape, pinwheel, staircase.
-- Adjustable hero size, mirror toggle, gap, outer margin, corner radius, cover/contain fit, background colour.
-- Export as PNG or JPEG at full resolution.
+- ドラッグ＆ドロップ、貼り付け、ファイル選択で画像を追加。サムネイルをドラッグ（または2枚をクリック）して並べ替え。
+- キャンバスサイズのプリセット: 縦型 1080×1920、横型 1920×1080、4K、正方形、カスタムサイズ。
+- 17種類のレイアウトパターン（プレビュー付き）: 自動グリッド、2列／3列、縦並び、横並び、
+  メイン上／下／左／右、メイン＋グリッド、モザイクA／B、レンガ、メイソンリー、L字、風車、階段。
+- メイン画像の大きさ、左右反転、画像の間隔、外側の余白、角の丸み、カバー／コンテイン、背景色を調整可能。
+- フル解像度で PNG または JPEG として書き出し。
 
-## Development
+## 開発
 
-Plain `index.html` + `style.css` + `app.js`, no build step. Open `index.html` directly or serve the folder.
+`index.html` + `style.css` + `app.js` のみで、ビルドは不要です。`index.html` を直接開くか、フォルダをサーブしてください。

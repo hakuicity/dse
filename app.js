@@ -34,36 +34,36 @@
   }
 
   const PATTERNS = [
-    { id: 'grid', name: 'Auto grid', min: 1, fn: (n, a) => gridRects(n, a) },
-    { id: 'grid2', name: '2 columns', min: 2, fn: (n) => gridRects(n, 1, 2) },
-    { id: 'grid3', name: '3 columns', min: 3, fn: (n) => gridRects(n, 1, 3) },
-    { id: 'rows', name: 'Stack', min: 1, fn: (n) => evenCol(n, 0, 1) },
-    { id: 'cols', name: 'Side by side', min: 1, fn: (n) => evenRow(n, 0, 1) },
-    { id: 'heroTop', name: 'Hero top', min: 2, hero: true,
+    { id: 'grid', name: '自動グリッド', min: 1, fn: (n, a) => gridRects(n, a) },
+    { id: 'grid2', name: '2列', min: 2, fn: (n) => gridRects(n, 1, 2) },
+    { id: 'grid3', name: '3列', min: 3, fn: (n) => gridRects(n, 1, 3) },
+    { id: 'rows', name: '縦に並べる', min: 1, fn: (n) => evenCol(n, 0, 1) },
+    { id: 'cols', name: '横に並べる', min: 1, fn: (n) => evenRow(n, 0, 1) },
+    { id: 'heroTop', name: 'メイン上', min: 2, hero: true,
       fn: (n, a, h) => [{ x: 0, y: 0, w: 1, h }, ...evenRow(n - 1, h, 1 - h)] },
-    { id: 'heroBottom', name: 'Hero bottom', min: 2, hero: true,
+    { id: 'heroBottom', name: 'メイン下', min: 2, hero: true,
       fn: (n, a, h) => [{ x: 0, y: 1 - h, w: 1, h }, ...evenRow(n - 1, 0, 1 - h)] },
-    { id: 'heroLeft', name: 'Hero left', min: 2, hero: true,
+    { id: 'heroLeft', name: 'メイン左', min: 2, hero: true,
       fn: (n, a, h) => [{ x: 0, y: 0, w: h, h: 1 }, ...evenCol(n - 1, h, 1 - h)] },
-    { id: 'heroRight', name: 'Hero right', min: 2, hero: true,
+    { id: 'heroRight', name: 'メイン右', min: 2, hero: true,
       fn: (n, a, h) => [{ x: 1 - h, y: 0, w: h, h: 1 }, ...evenCol(n - 1, 0, 1 - h)] },
-    { id: 'heroTopGrid', name: 'Hero + grid', min: 3, hero: true,
+    { id: 'heroTopGrid', name: 'メイン＋グリッド', min: 3, hero: true,
       fn: (n, a, h) => [{ x: 0, y: 0, w: 1, h },
         ...gridRects(n - 1, a / ((1 - h))).map(r => ({ x: r.x, y: h + r.y * (1 - h), w: r.w, h: r.h * (1 - h) }))] },
-    { id: 'mosaic', name: 'Mosaic', min: 2, fn: (n) => {
+    { id: 'mosaic', name: 'モザイクA', min: 2, fn: (n) => {
         // rows alternate 1, 2, 1, 2 ... items
         const rows = []; let i = 0, k = 0;
         while (i < n) { const c = Math.min(k % 2 === 0 ? 1 : 2, n - i); rows.push(c); i += c; k++; }
         const rects = []; const rh = 1 / rows.length;
         rows.forEach((c, r) => rects.push(...evenRow(c, r * rh, rh)));
         return rects; } },
-    { id: 'mosaic2', name: 'Mosaic B', min: 2, fn: (n) => {
+    { id: 'mosaic2', name: 'モザイクB', min: 2, fn: (n) => {
         const rows = []; let i = 0, k = 0;
         while (i < n) { const c = Math.min(k % 2 === 0 ? 2 : 1, n - i); rows.push(c); i += c; k++; }
         const rects = []; const rh = 1 / rows.length;
         rows.forEach((c, r) => rects.push(...evenRow(c, r * rh, rh)));
         return rects; } },
-    { id: 'brick', name: 'Brick', min: 3, fn: (n) => {
+    { id: 'brick', name: 'レンガ', min: 3, fn: (n) => {
         // rows of 2, odd rows offset (3 cells with half cells at the edges -> we use 2 + shifted)
         const rows = Math.ceil(n / 2); const rects = []; let i = 0;
         for (let r = 0; r < rows && i < n; r++) {
@@ -74,7 +74,7 @@
           rects.push(...rowRects); i += c;
         }
         return rects; } },
-    { id: 'masonry', name: 'Masonry', min: 2, fn: (n) => {
+    { id: 'masonry', name: 'メイソンリー', min: 2, fn: (n) => {
         // two columns, alternate assignment, each column divided evenly
         const left = [], right = [];
         for (let i = 0; i < n; i++) (i % 2 === 0 ? left : right).push(i);
@@ -82,14 +82,14 @@
         const place = (list, x) => list.forEach((idx, j) => out[idx] = { x, y: j / list.length, w: 0.5, h: 1 / list.length });
         place(left, 0); if (right.length) place(right, 0.5); else out[0].w = 1;
         return out; } },
-    { id: 'lShape', name: 'L-shape', min: 3, hero: true, fn: (n, a, h) => {
+    { id: 'lShape', name: 'L字', min: 3, hero: true, fn: (n, a, h) => {
         // hero top-left, one column right, one row bottom
         const rest = n - 1; const right = Math.ceil(rest / 2); const bottom = rest - right;
         const rects = [{ x: 0, y: 0, w: h, h: bottom ? h : 1 }];
         rects.push(...evenCol(right, h, 1 - h).map(r => ({ ...r, y: r.y * (bottom ? h : 1), h: r.h * (bottom ? h : 1) })));
         if (bottom) rects.push(...evenRow(bottom, h, 1 - h));
         return rects; } },
-    { id: 'pinwheel', name: 'Pinwheel', min: 4, hero: true, fn: (n, a, h) => {
+    { id: 'pinwheel', name: '風車', min: 4, hero: true, fn: (n, a, h) => {
         const s = h, t = 1 - h;
         const base = [
           { x: 0, y: 0, w: s, h: t }, { x: s, y: 0, w: t, h: s },
@@ -100,7 +100,7 @@
         const center = { x: t, y: t, w: s - t, h: s - t };
         const extra = evenCol(n - 4, center.x, center.w).map(r => ({ ...r, y: center.y + r.y * center.h, h: r.h * center.h }));
         return [...base, ...extra]; } },
-    { id: 'diag', name: 'Staircase', min: 2, fn: (n) => {
+    { id: 'diag', name: '階段', min: 2, fn: (n) => {
         // each image is a wide row that steps across the canvas; remaining strip stays background
         const rects = []; const rh = 1 / n, w = 0.7;
         for (let i = 0; i < n; i++) rects.push({ x: (i / (n - 1)) * (1 - w), y: i * rh, w, h: rh });
@@ -170,7 +170,7 @@
     state.images.forEach((it, i) => {
       const li = document.createElement('li');
       li.draggable = true; li.dataset.id = it.id; li.title = it.name;
-      li.innerHTML = `<img src="${it.url}" alt=""><span class="idx">${i + 1}</span><button class="del" title="Remove">×</button>`;
+      li.innerHTML = `<img src="${it.url}" alt=""><span class="idx">${i + 1}</span><button class="del" title="削除">×</button>`;
       li.querySelector('.del').addEventListener('click', e => { e.stopPropagation(); removeImage(it.id); });
       li.addEventListener('dragstart', () => { dragFrom = i; li.classList.add('dragging'); });
       li.addEventListener('dragend', () => { dragFrom = null; li.classList.remove('dragging'); });
@@ -270,7 +270,7 @@
       const has = state.images.length > 0;
       els.empty.style.display = has ? 'none' : '';
       els.png.disabled = els.jpg.disabled = !has;
-      els.info.textContent = `${state.W} × ${state.H} px · ${state.images.length} image${state.images.length === 1 ? '' : 's'} · ${PATTERN_BY_ID[state.pattern].name}`;
+      els.info.textContent = `${state.W} × ${state.H} px · ${state.images.length}枚 · ${PATTERN_BY_ID[state.pattern].name}`;
     });
   }
 
